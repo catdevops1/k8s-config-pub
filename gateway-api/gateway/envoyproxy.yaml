@@ -1,0 +1,48 @@
+# Configures the Envoy proxy Deployment that Envoy Gateway creates for a Gateway.
+# Referenced from gateway.yaml via spec.infrastructure.parametersRef.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: main-gateway-proxy
+  namespace: envoy-gateway-system
+  annotations:
+    # Ensure this exists before the Gateway that references it
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyDeployment:
+        # Data plane HA: losing one node should not take down all traffic
+        replicas: 2
+        pod:
+          # Optional: keep the proxy off unreliable nodes.
+          # Assumes nodes are labeled by scripts/label-nodes.sh.
+          # Remove this block if you do not label nodes.
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: availability
+                        operator: NotIn
+                        values: ["low"]
+          # Force the replicas onto different nodes
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: DoNotSchedule
+              labelSelector:
+                matchLabels:
+                  gateway.envoyproxy.io/owning-gateway-name: main-gateway
+                  gateway.envoyproxy.io/owning-gateway-namespace: envoy-gateway-system
+      # Keep at least one proxy during drains and descheduler evictions
+      envoyPDB:
+        minAvailable: 1
+      envoyService:
+        annotations:
+          # MetalLB reads this on the SERVICE, not on the Gateway.
+          # Envoy Gateway does not copy Gateway annotations to the Service it
+          # creates, so putting it on the Gateway is silently ignored and
+          # MetalLB assigns from the pool instead.
+          metallb.universe.tf/loadBalancerIPs: <YOUR-METALLB-IP>

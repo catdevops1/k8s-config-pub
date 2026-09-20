@@ -3,10 +3,15 @@ kind: Gateway
 metadata:
   name: main-gateway
   namespace: envoy-gateway-system
-  annotations:
-    metallb.universe.tf/loadBalancerIPs: <YOUR-METALLB-IP>  # MetalLB IP from your pool
 spec:
   gatewayClassName: envoy
+  # Proxy replicas, placement, PDB and the MetalLB IP live in envoyproxy.yaml.
+  # The MetalLB annotation must go on the Service, not on this Gateway.
+  infrastructure:
+    parametersRef:
+      group: gateway.envoyproxy.io
+      kind: EnvoyProxy
+      name: main-gateway-proxy
   listeners:
     - name: http
       protocol: HTTP
