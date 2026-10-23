@@ -202,4 +202,4 @@ kubectl apply -k descheduler/examples/conservative/ # minimal disruption
 
 ---
 
-*Last Updated: August 2026*
+*Last Updated: October 2026*
