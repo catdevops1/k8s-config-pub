@@ -34,6 +34,14 @@ Reusable, production-tested Kubernetes infrastructure components for bare-metal 
 - Zero single points of failure for stateful applications
 - See `docs/longhorn-migration.md` for implementation details
 
+### CloudNativePG (Postgres Operator)
+
+- Postgres managed by an operator instead of a hand-written Deployment
+- Each app declares a `Cluster` resource: primary + streaming replica on separate nodes
+- Automatic failover: the replica is promoted and the `-rw` service follows the new primary
+- Operator generates the app user, database and connection-string Secret, so no DB passwords to manage
+- Runs on Longhorn storage; installed via ArgoCD with `ServerSideApply=true` (CRDs exceed the client-side apply annotation limit)
+
 ### Cloudflare Tunnel (In-Cluster)
 
 - Migrated from systemd service on a single node to 2-replica Kubernetes Deployment
@@ -78,6 +86,7 @@ Example ExternalSecrets for wiring apps to Vault are in `external-secrets-config
 │       ├── gateway-config-app.yaml
 │       ├── descheduler-app.yaml
 │       └── longhorn-app.yaml
+│       ├── cnpg-app.yaml                 # CloudNativePG operator
 ├── cloudflared/                   # In-cluster Cloudflare Tunnel
 │   ├── namespace.yaml
 │   ├── configmap.yaml
